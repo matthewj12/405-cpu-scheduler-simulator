@@ -1,0 +1,7 @@
+{
+	"name": "a",
+	"arrival time": "4500",
+	"priority": 1,
+	"cpu bursts": [11,11,1],
+	"io bursts": [11,11,1]
+}
