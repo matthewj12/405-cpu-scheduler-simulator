@@ -1,7 +1,14 @@
-{
-	"name": "a",
-	"arrival time": "4500",
-	"priority": 1,
-	"cpu bursts": [11,11,1],
-	"io bursts": [11,11,1]
-}
+[
+	{
+		"name": "a",
+		"arrival time": "4500",
+		"priority": 1,
+		"bursts": [11,11,1]
+	},
+	{
+		"name": "b",
+		"arrival time": "4500",
+		"priority": 2,
+		"bursts": [11,11,1]
+	}
+]

@@ -2,6 +2,7 @@ import org.json.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -18,20 +19,41 @@ public class Runner {
 		"Invalid JSON to construct Activity from. Please modify the file, save it, and then try again.";
 
 	
-	public static void main(String[] args) throws FileNotFoundException {
-		SimulationSettings simSettings = getSimSettingsViaPrompts();
-
-		ProcessActivity processActivity = getProcessActivityFromJson();
-		ArrayList<ProcessActivity> n = new ArrayList<ProcessActivity>();
-		n.add(processActivity);
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		String logFileName = "log.txt";
 		
-		PCB pcb = new FCFS_PCB(n);
+		Scanner scnr = new Scanner(System.in);
+		SimulationSettings simSettings = getSimSettingsViaPrompts();
+		ArrayList<Process> processes = getProcessesFromJson();
+		// Java gives an error if we don't instantiate this here
+		AbstractPcb pcb = new FcfsPcb(processes, logFileName);
+
+		switch (simSettings.schedulingAlgo) {
+			case "fcfs":
+				pcb = new FcfsPcb(processes, logFileName);
+				break;
+			// case "ps":
+			// 	pcb = new PsPcb(processes, logFileName);
+			// 	break;
+			// case "sjf":
+			// 	pcb = new SjfPcb(processes, logFileName);
+			// 	break;
+			// case "rr":
+			// 	pcb = new RrPcb(processes, logFileName);
+			// 	break;
+		}
 
 		System.out.println("Starting");
+		System.out.println();
 
 		while (!pcb.allQueuesEmpty()) {
+			if (!simSettings.autoStep) {
+				System.out.println("Press enter to step simulation... ");
+				scnr.nextLine();
+			}
 			System.out.println("Stepping...");
-			pcb.stepSimulation(simSettings.quantumTime, simSettings.simUnitTime);
+
+			pcb.stepSimulation(simSettings);
 		}
 
 		System.out.println("Done");
@@ -40,23 +62,24 @@ public class Runner {
 
 	public static SimulationSettings getSimSettingsViaPrompts() {
 		System.out.println();
-		
 		SimulationSettings simSettings = new SimulationSettings();
-
 		Scanner scnr = new Scanner(System.in);
-
 		String badInputMsg = "Invalid input. Please try again.";
 
-		String quantumPrompt = "Enter quantum time (ms): ";
-		String simUnitTimePrompt = "Enter time interval between simulation steps (seconds): ";
-		String algoPrompt = "Enter the scheduling algorithm to use (options are:" + 
-												"\"fcfs\", \"rr\", \"ps\", and \"sjf\"): ";
-
-		List<String> algoOptions = Arrays.asList("fcfs", "rr", "ps", "sjf");
-
-		simSettings.quantumTime    = promptPosIntInput(scnr,  badInputMsg, quantumPrompt);
-		simSettings.simUnitTime    = promptPosIntInput(scnr,  badInputMsg, simUnitTimePrompt);
-		simSettings.schedulingAlgo = promptStrEnumInput(scnr, badInputMsg, algoPrompt, algoOptions);
+		simSettings.autoStep = promptStrEnumInput(scnr, badInputMsg,
+			"Step simulation automatically? (y/n): ",
+			Arrays.asList("y", "n")
+		).equals("y");
+		simSettings.quantumTime = promptPosIntInput(scnr,  badInputMsg,
+			"Enter quantum time (ms): "
+		);
+		simSettings.simUnitTime    = promptPosIntInput(scnr,  badInputMsg,
+			"Enter time interval between simulation steps (seconds): "
+		);
+		simSettings.schedulingAlgo = promptStrEnumInput(scnr, badInputMsg,
+			"Enter the scheduling algorithm to use (options are: \"fcfs\", \"rr\", \"ps\", and \"sjf\"): ",
+			Arrays.asList("fcfs", "rr", "ps", "sjf")
+		);
 
 		return simSettings;
 	}
@@ -140,7 +163,12 @@ public class Runner {
 			JSONObject o = new JSONObject(str);
 		}
 		catch (Exception e) {
-			return false;
+			try {
+				JSONArray o = new JSONArray(str);
+			}
+			catch (Exception ex) {
+				return false;
+			}
 		}
 
 		return true;
@@ -152,7 +180,7 @@ public class Runner {
 	}
 
 	// currently only loads in ONE activity struct (should would with several)
-	public static ProcessActivity getProcessActivityFromJson() throws FileNotFoundException {
+	public static ArrayList<Process> getProcessesFromJson() throws FileNotFoundException {
 		Scanner scnr = new Scanner(System.in);
 
 		String jsonPath;
@@ -182,8 +210,13 @@ public class Runner {
 			break;
 		}
 
+		ArrayList<Process> toReturn = new ArrayList<Process>();
+		JSONArray arr = new JSONArray(jsonStr);
 
-		return new ProcessActivity(new JSONObject(jsonStr));
+		for (Object obj : arr) {
+			toReturn.add(new Process(obj.toString()));
+		}
 
+		return toReturn;
 	}
 }
