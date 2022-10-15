@@ -1,5 +1,6 @@
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -8,12 +9,15 @@ import java.util.HashMap;
 import java.util.Arrays;
 
 public abstract class AbstractPcb {
-	String logFileName;
-	// pid, process data
+	// process data loaded from JSON file
+	public ArrayList<String> unarrivedPids;
+	// arrived process pid, process data
 	public HashMap<String, Process> processes;
-
 	// queue name, queue that holds pids
 	public HashMap<String, LinkedList<String>> queues;
+
+	public String logFileName;
+	public int nextPidToAssign;
 
 	public AbstractPcb(ArrayList<Process> scenario, String logFileName) {
 		this.logFileName = logFileName;
@@ -25,27 +29,56 @@ public abstract class AbstractPcb {
 		queues.put("running",    new LinkedList<String>());
 		queues.put("waiting",    new LinkedList<String>());
 		queues.put("terminated", new LinkedList<String>());
+		
+		processes = new HashMap<String, Process>();
 
-		int pidToAssign = 0;
-
+		nextPidToAssign = 0;
+		unarrivedPids = new ArrayList<String>();
 		for (Process p : scenario) {
-			queues.get("not ready").add(Integer.toString(pidToAssign++));
+			String pid = Integer.toString(nextPidToAssign++);
+			unarrivedPids.add(pid);
+			processes.put(pid, p);
 		}
 	}
 
-	public void moveProcess(String pid, String fromQueue, String destQueue) throws IOException {
-		queues.get(fromQueue).remove(pid);
-		queues.get(destQueue).add(pid);
+	void addNewlyArrivedProccessesToNotReady(int curTick) {
+		ArrayList<String> newlyArrived = new ArrayList<String>();
 		
-		FileWriter fw = new FileWriter(logFileName);
-		fw.write("Process " + pid + " moved from " + fromQueue + " to " + destQueue + "\n");
-		fw.close();
+		for (String pid : unarrivedPids) {
+			// We can use == instead of >= because stepSimulation steps by ticks, the smallest unit of "time" in the entire simulation
+			if (curTick == processes.get(pid).arrivalTime) {
+				newlyArrived.add(pid);
+			}
+		}
+
+		for (String pid : newlyArrived) {
+			unarrivedPids.remove(pid);
+			queues.get("not ready").add(pid);
+		}
+	}
+
+	public void moveProcess(String pid, String curQueue, String destQueue) throws IOException {
+		queues.get(curQueue).remove(pid);
+		queues.get(destQueue).add(pid);
+
+		String logMsg = "Process " + pid + " moved from " + curQueue + " to " + destQueue;
+
+		FileWriter fw = new FileWriter(logFileName, true);
+		BufferedWriter bw = new BufferedWriter(fw);
+		bw.write(logMsg);
+		bw.newLine();
+		System.out.println(logMsg + '\n');
+
+		bw.close();
 	}
 
 	public void printQueue(String queueToPrint) {
 		LinkedList<String> queue = queues.get(queueToPrint);
 		
 		System.out.print(queueToPrint + " queue: ");
+		for (int i = queueToPrint.length(); i < 10; i++) {
+			System.out.print(" ");
+		}
 
 		if (queue.size() > 0) {
  			System.out.print(queue.get(0));
@@ -64,23 +97,60 @@ public abstract class AbstractPcb {
 		System.out.println();
 	}
 
-	public void visualize() {
-		for (String toPrint : Arrays.asList("not ready", "ready", "running", "waiting")) {
+	public void visualize(int curTick) {
+		System.out.println("Tick: " + curTick);
+
+		// printProcs();
+
+		for (String toPrint : Arrays.asList("not ready", "ready", "running", "waiting", "terminated")) {
 			printQueue(toPrint);
 		}
 
 		System.out.println();
 	}
 
-	public boolean allQueuesEmpty() {
-		return 
-			queues.get("not ready").isEmpty() &&
-			queues.get("ready").isEmpty() &&
-			queues.get("running").isEmpty() &&
-			queues.get("waiting").isEmpty() &&
-			queues.get("terminated").isEmpty();
+	public boolean allProcessesCompleted() {
+		for (String pid : processes.keySet()) {
+			if (!processes.get(pid).remainingBursts.isEmpty()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
-	// sum of quantum times waited (only relevant for RR) must be >= simUnitTime
-	public abstract void stepSimulation(SimulationSettings simSettings) throws IOException;
+	// sum of quantum times waited (only relevant for RR) must be >= ticksPerStep
+	public abstract void stepSimulation(SimulationSettings simSettings, int globalTick) throws IOException;
+
+	public void printProcs() {
+		for (String pid : processes.keySet()) {
+			Process p = processes.get(pid);
+			System.out.print(p.name + " | ");
+
+			for (int b : p.remainingBursts) {
+				System.out.print(b + " ");
+			}
+			System.out.println();
+		}
+	}
+
+	public void decrementBurstByTick(String pid) {
+		String curQueue = getProcessQueue(pid);
+		
+		if (!curQueue.equals("terminated")) {
+			processes.get(pid).remainingBursts.set(0, processes.get(pid).remainingBursts.get(0) - 1);
+		}
+	}
+
+	public String getProcessQueue(String pid) {
+		String curQueue = "";
+
+		for (String queueName : queues.keySet()) {
+			if (queues.get(queueName).contains(pid)) {
+				curQueue = queueName;
+				break;
+			}
+		}
+
+		return curQueue;
+	}
 }

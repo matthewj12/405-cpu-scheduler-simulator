@@ -21,10 +21,12 @@ public class Runner {
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 		String logFileName = "log.txt";
-		
 		Scanner scnr = new Scanner(System.in);
-		SimulationSettings simSettings = getSimSettingsViaPrompts();
-		ArrayList<Process> processes = getProcessesFromJson();
+
+		// SimulationSettings simSettings = getSimSettingsViaPrompts();
+		SimulationSettings simSettings = new SimulationSettings(false, 1, 1, "fcfs");
+		ArrayList<Process> processes = getProcessesFromJson("scenario.json");
+
 		// Java gives an error if we don't instantiate this here
 		AbstractPcb pcb = new FcfsPcb(processes, logFileName);
 
@@ -46,17 +48,23 @@ public class Runner {
 		System.out.println("Starting");
 		System.out.println();
 
-		while (!pcb.allQueuesEmpty()) {
+		int globalTick = 0;
+
+		while (!pcb.allProcessesCompleted()) {
 			if (!simSettings.autoStep) {
 				System.out.println("Press enter to step simulation... ");
 				scnr.nextLine();
 			}
-			System.out.println("Stepping...");
 
-			pcb.stepSimulation(simSettings);
+			pcb.stepSimulation(simSettings, globalTick++);
 		}
 
+		pcb.visualize(globalTick);
+
+		scnr.close();
+
 		System.out.println("Done");
+		System.out.println();
 	}
 
 
@@ -73,7 +81,7 @@ public class Runner {
 		simSettings.quantumTime = promptPosIntInput(scnr,  badInputMsg,
 			"Enter quantum time (ms): "
 		);
-		simSettings.simUnitTime    = promptPosIntInput(scnr,  badInputMsg,
+		simSettings.ticksPerStep    = promptPosIntInput(scnr,  badInputMsg,
 			"Enter time interval between simulation steps (seconds): "
 		);
 		simSettings.schedulingAlgo = promptStrEnumInput(scnr, badInputMsg,
@@ -179,19 +187,21 @@ public class Runner {
 		return true;
 	}
 
-	// currently only loads in ONE activity struct (should would with several)
-	public static ArrayList<Process> getProcessesFromJson() throws FileNotFoundException {
+
+	public static ArrayList<Process> getProcessesFromJson(String jsonPath) throws FileNotFoundException {
 		Scanner scnr = new Scanner(System.in);
 
-		String jsonPath;
 		String jsonStr;
 
 		while (true) {
-			System.out.print("Enter JSON path: ");
-			jsonPath = scnr.nextLine();
+			if (jsonPath == null) {
+				System.out.print("Enter JSON path: ");
+				jsonPath = scnr.nextLine();
+			}
 
 			if (!isValidFilePath(jsonPath)) {
 				System.out.println(invalidPathMsg);
+				jsonPath = null;
 				continue;
 			}
 

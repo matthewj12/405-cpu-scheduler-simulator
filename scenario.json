@@ -1,14 +1,14 @@
 [
 	{
-		"name": "a",
-		"arrival time": "4500",
+		"name": "apache",
+		"arrival time": 0,
 		"priority": 1,
-		"bursts": [11,11,1]
+		"bursts": [2]
 	},
 	{
-		"name": "b",
-		"arrival time": "4500",
+		"name": "c",
+		"arrival time": 0,
 		"priority": 2,
-		"bursts": [11,11,1]
+		"bursts": [2]
 	}
 ]
