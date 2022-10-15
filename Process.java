@@ -7,7 +7,7 @@ import java.util.List;
 public class Process {
 	public String name;
 	public int arrivalTime;
-	public String priority;
+	public int priority;
 	// We can tell if it's a cpu or io burst based on the number of bursts remaining (cpu, io, ..., io, cpu)
 	public List<Integer> remainingBursts;
 
@@ -16,7 +16,7 @@ public class Process {
 
 		name = jsonObj.get("name").toString();
 		arrivalTime = Integer.parseInt(jsonObj.get("arrival time").toString());
-		priority = jsonObj.get("priority").toString();
+		priority = Integer.parseInt(jsonObj.get("priority").toString());
 
 		remainingBursts = new ArrayList<Integer>();
 

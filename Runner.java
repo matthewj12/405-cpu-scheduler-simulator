@@ -23,27 +23,13 @@ public class Runner {
 		String logFileName = "log.txt";
 		Scanner scnr = new Scanner(System.in);
 
+		SimulationSettings simSettings = new SimulationSettings(true, 1, 1, "sjf");
 		// SimulationSettings simSettings = getSimSettingsViaPrompts();
-		SimulationSettings simSettings = new SimulationSettings(false, 1, 1, "fcfs");
 		ArrayList<Process> processes = getProcessesFromJson("scenario.json");
+		// ArrayList<Process> processes = getProcessesFromJson(null);
 
 		// Java gives an error if we don't instantiate this here
-		AbstractPcb pcb = new FcfsPcb(processes, logFileName);
-
-		switch (simSettings.schedulingAlgo) {
-			case "fcfs":
-				pcb = new FcfsPcb(processes, logFileName);
-				break;
-			// case "ps":
-			// 	pcb = new PsPcb(processes, logFileName);
-			// 	break;
-			// case "sjf":
-			// 	pcb = new SjfPcb(processes, logFileName);
-			// 	break;
-			// case "rr":
-			// 	pcb = new RrPcb(processes, logFileName);
-			// 	break;
-		}
+		PCB pcb = new PCB(processes, logFileName);
 
 		System.out.println("Starting");
 		System.out.println();
@@ -194,6 +180,7 @@ public class Runner {
 		String jsonStr;
 
 		while (true) {
+			// is null when we haven't explicity hard-coded a path in main().
 			if (jsonPath == null) {
 				System.out.print("Enter JSON path: ");
 				jsonPath = scnr.nextLine();
