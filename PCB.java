@@ -18,13 +18,14 @@ public class PCB {
 
 	public String logFileName;
 	public int nextPidToAssign;
+	public int globalTick;
 
 	public PCB(ArrayList<Process> scenario, String logFileName) {
 		this.logFileName = logFileName;
 		
 		queues = new HashMap<String, LinkedList<String>>();
 
-		queues.put("not ready",  new LinkedList<String>());
+		queues.put("notReady",  new LinkedList<String>());
 		queues.put("ready",      new LinkedList<String>());
 		queues.put("running",    new LinkedList<String>());
 		queues.put("waiting",    new LinkedList<String>());
@@ -53,7 +54,7 @@ public class PCB {
 
 		for (String pid : newlyArrived) {
 			unarrivedPids.remove(pid);
-			queues.get("not ready").add(pid);
+			queues.get("notReady").add(pid);
 		}
 	}
 
@@ -61,7 +62,7 @@ public class PCB {
 		queues.get(curQueue).remove(pid);
 		queues.get(destQueue).add(pid);
 
-		String logMsg = "Process " + pid + " moved from " + curQueue + " to " + destQueue;
+		String logMsg = "Process " + pid + " moved from " + curQueue + " to " + destQueue + " during tick " + globalTick;	
 
 		FileWriter fw = new FileWriter(logFileName, true);
 		BufferedWriter bw = new BufferedWriter(fw);
@@ -102,7 +103,7 @@ public class PCB {
 
 		// printProcs();
 
-		for (String toPrint : Arrays.asList("not ready", "ready", "running", "waiting", "terminated")) {
+		for (String toPrint : Arrays.asList("notReady", "ready", "running", "waiting", "terminated")) {
 			printQueue(toPrint);
 		}
 
@@ -181,6 +182,8 @@ public class PCB {
 	}
 
 	public void stepSimulation(SimulationSettings simSettings, int globalTick) throws IOException {
+		this.globalTick = globalTick;
+		
 		for (int tick = 0; tick < simSettings.ticksPerStep; tick++) {
 			addNewlyArrivedProccessesToNotReady(globalTick);
 			
@@ -195,8 +198,8 @@ public class PCB {
 				
 				String curQueue = getProcessQueue(pid);
 
-				if (curQueue.equals("not ready")) {
-					moveProcess(pid, "not ready", "ready");
+				if (curQueue.equals("notReady")) {
+					moveProcess(pid, "notReady", "ready");
 					curQueue = "ready";
 				}
 
@@ -246,7 +249,6 @@ public class PCB {
 			}
 		}
 	}
-
 
 	public void decideWhoGetsCpu(SimulationSettings simSettings, String pid) throws IOException {
 		if (queues.get("running").isEmpty()) {

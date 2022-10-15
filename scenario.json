@@ -3,17 +3,17 @@
 		"name": "apache",
 		"arrival time": 0,
 		"priority": 2,
-		"bursts": [2, 3, 5, 1]
+		"bursts": [2, 3, 4, 1]
 	},
 	{
-		"name": "c",
-		"arrival time": 0,
+		"name": "browser",
+		"arrival time": 1,
 		"priority": 1,
 		"bursts": [1, 2]
 	},
 	{
-		"name": "d",
-		"arrival time": 0,
+		"name": "cringe activity",
+		"arrival time": 5,
 		"priority": 6,
 		"bursts": [7, 1, 1]
 	}

@@ -2,9 +2,11 @@ import org.json.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
@@ -21,6 +23,10 @@ public class Runner {
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 		String logFileName = "log.txt";
+		FileWriter logFile = new FileWriter(logFileName, false);
+		logFile.write("");
+		logFile.close();
+		
 		Scanner scnr = new Scanner(System.in);
 
 		SimulationSettings simSettings = new SimulationSettings(true, 1, 1, "sjf");
@@ -48,6 +54,8 @@ public class Runner {
 		pcb.visualize(globalTick);
 
 		scnr.close();
+
+		printStats("log.txt");
 
 		System.out.println("Done");
 		System.out.println();
@@ -143,7 +151,7 @@ public class Runner {
 		String toReturn = "";
 
 		while (scnr.hasNextLine()) {
-			toReturn += scnr.nextLine();
+			toReturn += scnr.nextLine() + "\n";
 		}
 
 		scnr.close();
@@ -215,5 +223,51 @@ public class Runner {
 		}
 
 		return toReturn;
+	}
+
+	public static void printStats(String logFileName) throws FileNotFoundException {
+		String log = getFileContents(logFileName);
+
+		// List<String> metrics = Arrays.asList("response", "turnaround", "waiting");
+		List<String> metrics = Arrays.asList("response", "turnaround");
+
+		HashMap<String, ArrayList<Integer>> times = new HashMap<String, ArrayList<Integer>>();
+		for (String metric : metrics) {
+			times.put(metric, new ArrayList<Integer>());
+		}
+
+		for (String line : log.split("\n")) {
+			String[] split = line.split(" ");
+			String pid  = split[1];
+			String from = split[4];
+			String to   = split[6];
+			String tick = split[9];
+
+			
+			switch (to) {
+				case "running":
+					times.get("response").add(Integer.parseInt(tick));
+					System.out.println("Response time for " + pid + ": " + tick + " ticks");
+					break;
+				case "terminated":
+					times.get("turnaround").add(Integer.parseInt(tick));
+					System.out.println("Turnaround time for " + pid + ": " + tick + " ticks");
+					break;
+			}
+		}
+
+		System.out.println();
+
+		HashMap<String, Integer> sums = new HashMap<String, Integer>();
+		for (String metric : metrics) {
+			sums.put(metric, 0);
+
+			for (int time : times.get(metric)) {
+				sums.put(metric, sums.get(metric) + time);
+			}
+
+			double avg = Math.round((double) sums.get(metric) / times.get(metric).size() * 10.0) / 10.0;
+			System.out.println("Average " + metric + " time: " + avg + " ticks");
+		}
 	}
 }
