@@ -29,10 +29,10 @@ public class Runner {
 		
 		Scanner scnr = new Scanner(System.in);
 
-		SimulationSettings simSettings = new SimulationSettings(true, 1, 1, "sjf");
-		// SimulationSettings simSettings = getSimSettingsViaPrompts();
-		ArrayList<Process> processes = getProcessesFromJson("scenario-spaced-out-tasks.json");
-		// ArrayList<Process> processes = getProcessesFromJson(null);
+		// SimulationSettings simSettings = new SimulationSettings(true, 1, 1, "sjf");
+		SimulationSettings simSettings = getSimSettingsViaPrompts();
+		// ArrayList<Process> processes = getProcessesFromJson("scenario-spaced-out-tasks.json");
+		ArrayList<Process> processes = getProcessesFromJson(null);
 
 		// Java gives an error if we don't instantiate this here
 		PCB pcb = new PCB(processes, logFileName);
