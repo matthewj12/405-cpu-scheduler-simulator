@@ -31,7 +31,7 @@ public class Runner {
 
 		SimulationSettings simSettings = new SimulationSettings(true, 1, 1, "sjf");
 		// SimulationSettings simSettings = getSimSettingsViaPrompts();
-		ArrayList<Process> processes = getProcessesFromJson("scenario.json");
+		ArrayList<Process> processes = getProcessesFromJson("scenario-spaced-out-tasks.json");
 		// ArrayList<Process> processes = getProcessesFromJson(null);
 
 		// Java gives an error if we don't instantiate this here
@@ -55,7 +55,7 @@ public class Runner {
 
 		scnr.close();
 
-		printStats("log.txt");
+		pcb.printStats();
 
 		System.out.println("Done");
 		System.out.println();
@@ -136,6 +136,7 @@ public class Runner {
 		try {
 			File f = new File(path);
 			Scanner scnr = new Scanner(f);
+			scnr.close();
 		}
 		catch (Exception e) {
 			return false;
@@ -223,51 +224,5 @@ public class Runner {
 		}
 
 		return toReturn;
-	}
-
-	public static void printStats(String logFileName) throws FileNotFoundException {
-		String log = getFileContents(logFileName);
-
-		// List<String> metrics = Arrays.asList("response", "turnaround", "waiting");
-		List<String> metrics = Arrays.asList("response", "turnaround");
-
-		HashMap<String, ArrayList<Integer>> times = new HashMap<String, ArrayList<Integer>>();
-		for (String metric : metrics) {
-			times.put(metric, new ArrayList<Integer>());
-		}
-
-		for (String line : log.split("\n")) {
-			String[] split = line.split(" ");
-			String pid  = split[1];
-			String from = split[4];
-			String to   = split[6];
-			String tick = split[9];
-
-			
-			switch (to) {
-				case "running":
-					times.get("response").add(Integer.parseInt(tick));
-					System.out.println("Response time for " + pid + ": " + tick + " ticks");
-					break;
-				case "terminated":
-					times.get("turnaround").add(Integer.parseInt(tick));
-					System.out.println("Turnaround time for " + pid + ": " + tick + " ticks");
-					break;
-			}
-		}
-
-		System.out.println();
-
-		HashMap<String, Integer> sums = new HashMap<String, Integer>();
-		for (String metric : metrics) {
-			sums.put(metric, 0);
-
-			for (int time : times.get(metric)) {
-				sums.put(metric, sums.get(metric) + time);
-			}
-
-			double avg = Math.round((double) sums.get(metric) / times.get(metric).size() * 10.0) / 10.0;
-			System.out.println("Average " + metric + " time: " + avg + " ticks");
-		}
 	}
 }

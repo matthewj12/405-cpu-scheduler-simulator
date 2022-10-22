@@ -20,18 +20,32 @@ public class PCB {
 	public int nextPidToAssign;
 	public int globalTick;
 
+	public HashMap<String, Integer> cpuWaitTimes;
+	public HashMap<String, Integer> ioWaitTimes;
+	public HashMap<String, Integer> responseTimes;
+	public HashMap<String, Integer> turnaroundTimes;
+	public int totalTicks;
+	public int cpuUtilTicks;
+
 	public PCB(ArrayList<Process> scenario, String logFileName) {
 		this.logFileName = logFileName;
+		// Don't count the first tick (tick 0) because no time has elapsed
+		totalTicks = -1;
+		cpuUtilTicks = 0;
 		
 		queues = new HashMap<String, LinkedList<String>>();
 
-		queues.put("notReady",  new LinkedList<String>());
+		queues.put("notReady",   new LinkedList<String>());
 		queues.put("ready",      new LinkedList<String>());
 		queues.put("running",    new LinkedList<String>());
 		queues.put("waiting",    new LinkedList<String>());
 		queues.put("terminated", new LinkedList<String>());
 		
 		processes = new HashMap<String, Process>();
+		cpuWaitTimes = new HashMap<String, Integer>();
+		ioWaitTimes = new HashMap<String, Integer>();
+		responseTimes = new HashMap<String, Integer>();
+		turnaroundTimes = new HashMap<String, Integer>();
 
 		nextPidToAssign = 0;
 		unarrivedPids = new ArrayList<String>();
@@ -39,6 +53,11 @@ public class PCB {
 			String pid = Integer.toString(nextPidToAssign++);
 			unarrivedPids.add(pid);
 			processes.put(pid, p);
+
+			cpuWaitTimes.put(pid, 0);
+			ioWaitTimes.put(pid, 0);
+			responseTimes.put(pid, 0);
+			turnaroundTimes.put(pid, 0);
 		}
 	}
 
@@ -59,6 +78,10 @@ public class PCB {
 	}
 
 	public void moveProcess(String pid, String curQueue, String destQueue) throws IOException {
+		// if (destQueue.equals("running")) {
+
+		// }
+		
 		queues.get(curQueue).remove(pid);
 		queues.get(destQueue).add(pid);
 
@@ -68,9 +91,9 @@ public class PCB {
 		BufferedWriter bw = new BufferedWriter(fw);
 		bw.write(logMsg);
 		bw.newLine();
-		System.out.println(logMsg + '\n');
-
 		bw.close();
+
+		System.out.println(logMsg);
 	}
 
 	public void printQueue(String queueToPrint) {
@@ -99,9 +122,9 @@ public class PCB {
 	}
 
 	public void visualize(int curTick) {
+		System.out.println();
+		
 		System.out.println("Tick: " + curTick);
-
-		// printProcs();
 
 		for (String toPrint : Arrays.asList("notReady", "ready", "running", "waiting", "terminated")) {
 			printQueue(toPrint);
@@ -118,19 +141,8 @@ public class PCB {
 		}
 		return true;
 	}
-
-	public void printProcs() {
-		for (String pid : processes.keySet()) {
-			Process p = processes.get(pid);
-			System.out.print(p.name + " | ");
-
-			for (int b : p.remainingBursts) {
-				System.out.print(b + " ");
-			}
-			System.out.println();
-		}
-	}
-
+	
+	
 	public void decrementBurstByTick(String pid) {
 		String curQueue = getProcessQueue(pid);
 		
@@ -247,6 +259,31 @@ public class PCB {
 					}
 				}
 			}
+
+			for (String pid : queues.get("ready")) {
+				cpuWaitTimes.put(pid, cpuWaitTimes.get(pid) + 1);
+			}
+
+			for (String pid : queues.get("waiting")) {
+				ioWaitTimes.put(pid, ioWaitTimes.get(pid) + 1);
+			}
+
+			for (String pid : queues.get("running")) {
+				if (responseTimes.get(pid) == 0) {
+					responseTimes.put(pid, globalTick);
+				}
+			}
+
+			for (String pid : queues.get("terminated")) {
+				if (turnaroundTimes.get(pid) == 0) {
+					turnaroundTimes.put(pid, globalTick);
+				}
+			}
+
+			totalTicks++;
+			if (!queues.get("running").isEmpty()) {
+				cpuUtilTicks++;
+			}
 		}
 	}
 
@@ -269,5 +306,56 @@ public class PCB {
 					break;
 			}
 		}
+	}
+
+
+	public void printStats() throws FileNotFoundException {
+		int cpuWaitSum = 0;
+		int ioWaitSum = 0;
+		int responseSum = 0;
+		int turnaroundSum = 0;
+
+
+		for (String pid : responseTimes.keySet()) {
+			int waitTime = responseTimes.get(pid);
+			System.out.println("Response time for pid " + pid + " : " + waitTime + " ticks");
+			responseSum += waitTime;
+		}
+
+		System.out.println();
+
+		for (String pid : turnaroundTimes.keySet()) {
+			int waitTime = turnaroundTimes.get(pid);
+			System.out.println("Turnaround time for pid " + pid + " : " + waitTime + " ticks");
+			turnaroundSum += waitTime;
+		}
+
+		System.out.println();
+
+		for (String pid : cpuWaitTimes.keySet()) {
+			int waitTime = cpuWaitTimes.get(pid);
+			System.out.println("Total CPU wait time for pid " + pid + " : " + waitTime + " ticks");
+			cpuWaitSum += waitTime;
+		}
+
+		System.out.println();
+
+		for (String pid : ioWaitTimes.keySet()) {
+			int waitTime = ioWaitTimes.get(pid);
+			System.out.println("Total IO wait time for pid " + pid + " : " + waitTime + " ticks");
+			ioWaitSum += waitTime;
+		}
+
+		System.out.println();
+
+		System.out.println("Average CPU wait time: " + ((double) cpuWaitSum / processes.size()));
+
+		System.out.println();
+
+		System.out.println("Average IO wait time: " + ((double) ioWaitSum / processes.size()));
+
+		System.out.println();
+
+		System.out.println("CPU utilization: " + ((double) cpuUtilTicks / totalTicks * 100) + " %");
 	}
 }
