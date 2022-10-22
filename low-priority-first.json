@@ -1,0 +1,26 @@
+[
+	{
+		"name": "stuff",
+		"arrival time": 4,
+		"priority": 3,
+		"bursts": [3, 3, 1]
+	},
+	{
+		"name": "cringe activity",
+		"arrival time": 2,
+		"priority": 2,
+		"bursts": [5]
+	},
+	{
+		"name": "browser",
+		"arrival time": 0,
+		"priority": 1,
+		"bursts": [1, 2, 1]
+	},
+	{
+		"name": "apache",
+		"arrival time": 0,
+		"priority": 0,
+		"bursts": [1, 4, 5, 2, 1]
+	}
+]

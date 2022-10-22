@@ -28,14 +28,23 @@ public class Runner {
 		logFile.close();
 		
 		Scanner scnr = new Scanner(System.in);
+		// Hard-code settings
+		SimulationSettings simSettings = new SimulationSettings(true, 1, 1, "sjf", false);
+		ArrayList<Process> processes = getProcessesFromJson("fast-first.json");
+		boolean silent = false;
 
-		// SimulationSettings simSettings = new SimulationSettings(true, 1, 1, "sjf");
-		SimulationSettings simSettings = getSimSettingsViaPrompts();
-		// ArrayList<Process> processes = getProcessesFromJson("scenario-spaced-out-tasks.json");
-		ArrayList<Process> processes = getProcessesFromJson(null);
+		// Prompt for settings
+		// SimulationSettings simSettings = getSimSettingsViaPrompts();
+		// ArrayList<Process> processes = getProcessesFromJson(null);
+
+		// Get select settings from command line arguments
+		// String scenarioFile = args[1];
+		// boolean silent = args.length == 3 && args[2].equals("-s");
+		// SimulationSettings simSettings = new SimulationSettings(true, 1, 1, args[0], silent);
+		// ArrayList<Process> processes = getProcessesFromJson(args[1]);
 
 		// Java gives an error if we don't instantiate this here
-		PCB pcb = new PCB(processes, logFileName);
+		PCB pcb = new PCB(processes, logFileName, silent);
 
 		System.out.println("Starting");
 		System.out.println();
@@ -43,19 +52,22 @@ public class Runner {
 		int globalTick = 0;
 
 		while (!pcb.allProcessesCompleted()) {
-			if (!simSettings.autoStep) {
+			if (!simSettings.autoStep && !simSettings.silent) {
 				System.out.println("Press enter to step simulation... ");
 				scnr.nextLine();
 			}
 
-			pcb.stepSimulation(simSettings, globalTick++);
+			pcb.stepSimulation(simSettings, globalTick++, silent);
 		}
 
-		pcb.visualize(globalTick);
+		if (!simSettings.silent) {
+			pcb.visualize(globalTick);
+		}
 
 		scnr.close();
 
-		pcb.printStats();
+		// pcb.printStats();
+		// pcb.outputStatsCsv("testResults.csv", simSettings.schedulingAlgo, scenarioFile);
 
 		System.out.println("Done");
 		System.out.println();
@@ -72,16 +84,20 @@ public class Runner {
 			"Step simulation automatically? (y/n): ",
 			Arrays.asList("y", "n")
 		).equals("y");
-		simSettings.quantumTime = promptPosIntInput(scnr,  badInputMsg,
+		simSettings.quantumTime = promptPosIntInput(scnr, badInputMsg,
 			"Enter quantum time (ms): "
 		);
-		simSettings.ticksPerStep    = promptPosIntInput(scnr,  badInputMsg,
+		simSettings.ticksPerStep = promptPosIntInput(scnr, badInputMsg,
 			"Enter time interval between simulation steps (seconds): "
 		);
 		simSettings.schedulingAlgo = promptStrEnumInput(scnr, badInputMsg,
 			"Enter the scheduling algorithm to use (options are: \"fcfs\", \"rr\", \"ps\", and \"sjf\"): ",
 			Arrays.asList("fcfs", "rr", "ps", "sjf")
 		);
+		simSettings.silent = promptStrEnumInput(scnr, badInputMsg,
+			"Execute in silent mode? (y/n): ",
+			Arrays.asList("y", "n")
+		).equals("y");
 
 		return simSettings;
 	}
